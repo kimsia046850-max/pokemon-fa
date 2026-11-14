@@ -59,6 +59,7 @@ dialog textarea{height:90px;font-family:monospace}
 .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 #toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;max-width:88vw}
 #toast.on{opacity:1}
+.pr{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:8px;background:var(--line);font-size:12px;font-weight:700;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -83,15 +84,15 @@ dialog textarea{height:90px;font-family:monospace}
   <p id="info"></p>
 </dialog>
 <script>
-const KEY_T='pfa.ticks.v1',KEY_L='pfa.list.v1',KEY_V='pfa.listver',KEY_S='pfa.sync',KEY_F='pfa.filter',KEY_P='pfa.page';
+const KEY_T='pfa.ticks.v1',KEY_L='pfa.list.v1',KEY_V='pfa.listver',KEY_S='pfa.sync',KEY_F='pfa.filter',KEY_P='pfa.page',KEY_D='pfa.data.v2';
 const $=s=>document.querySelector(s);
 const sg=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}};
 const ss=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 const PAGES={
-  dex:{title:'Pokédex',ph:'ค้นหา ชื่อ / เลข Pokédex',note:'▢ = มี Full Art แล้ว · ◯ = มีใบธรรมดา (ยังไม่ใช่ Full Art)',list:[]},
-  mega:{title:'Mega Dex',ph:'ค้นหา Mega / ชื่อ / เลข',note:'▢ = มี Full Art ของ Mega ex แล้ว · ◯ = มีใบธรรมดา · ใบที่แสดงคือการ์ด Mega ex/EX ที่ตรงกับลิส',list:[]},
+  dex:{title:'Pokédex',ph:'ค้นหา ชื่อ / เลข Pokédex / ชื่อไทย',note:'▢ = มี Full Art แล้ว · ◯ = มีใบธรรมดา (ยังไม่ใช่ Full Art)',list:[]},
+  mega:{title:'Mega Dex',ph:'ค้นหา Mega / ชื่อ / เลข / ชื่อไทย',note:'▢ = มี Full Art ของ Mega ex แล้ว · ◯ = มีใบธรรมดา · ใบที่แสดงคือการ์ด Mega ex/EX ที่ตรงกับลิส',list:[]},
   reg:{title:'Regional Forms',ph:'ค้นหา ร่างภูมิภาค / ชื่อ / เลข',note:'▢ = มี Full Art แล้ว · ◯ = มีใบธรรมดา · ร่าง Alolan / Galarian / Hisuian / Paldean · Tauros Paldea รวม 3 สายพันธุ์เป็นรายการเดียว',list:[]},
-  gmax:{title:'Gigantamax Dex',ph:'ค้นหา Gigantamax / ชื่อ / เลข',note:'▢ = มี Full Art VMAX แล้ว · ◯ = มีใบธรรมดา · หมายเหตุ: ใบ VMAX ที่แสดงเป็นของโปเกมอนที่มีร่าง Gigantamax แต่แหล่งข้อมูลไม่ได้ระบุว่าเป็นร่างไหน',list:[]}
+  gmax:{title:'Gigantamax Dex',ph:'ค้นหา Gigantamax / ชื่อ / เลข / ชื่อไทย',note:'▢ = มี Full Art VMAX แล้ว · ◯ = มีใบธรรมดา · หมายเหตุ: ใบ VMAX ที่แสดงเป็นของโปเกมอนที่มีร่าง Gigantamax แต่แหล่งข้อมูลไม่ได้ระบุว่าเป็นร่างไหน',list:[]}
 };
 let page=sg(KEY_P,'dex');if(!PAGES[page])page='dex';
 let ticks={},filter=sg(KEY_F,'all'),q='';
@@ -102,17 +103,20 @@ const LIST=()=>PAGES[page].list;
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2200)}
 function genOf(d){return d<=151?'Gen 1 · Kanto':d<=251?'Gen 2 · Johto':d<=386?'Gen 3 · Hoenn':d<=493?'Gen 4 · Sinnoh':d<=649?'Gen 5 · Unova':d<=721?'Gen 6 · Kalos':d<=809?'Gen 7 · Alola':d<=905?'Gen 8 · Galar/Hisui':'Gen 9 · Paldea'}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function detail(p){return p.l.map((x,i)=>{const m=x.split(' / ');const r=m.shift();return `<div><span class="r">${esc(r)}</span>${esc(m.join(' / '))}${p.y&&p.y[i]?` <small style="color:var(--mute)">(${esc(p.y[i])})</small>`:''}</div>`}).join('')}
+let PRICES={p:{},date:'',src:{}};
+function priceOf(e){const x=e.split(' / ');if(x.length<3)return'';const v=PRICES.p[x[1].split(' ')[0]+'|'+x[2].split(' ')[0]];if(!v)return'';
+  return ' <span class="pr" title="'+esc(PRICES.date)+'">'+Object.keys(v).map(k=>esc(PRICES.src[k]||k)+' ¥'+v[k].toLocaleString('en-US')).join(' · ')+'</span>'}
+function detail(p){return p.l.map((x,i)=>{const m=x.split(' / ');const r=m.shift();return `<div><span class="r">${esc(r)}</span>${esc(m.join(' / '))}${p.y&&p.y[i]?` <small style="color:var(--mute)">(${esc(p.y[i])})</small>`:''}${priceOf(x)}</div>`}).join('')}
 function prep(arr){arr.forEach(p=>{if(p.k==null)p.k=String(p.d);if(p.b==null)p.b=p.d;if(p.s==null)p.s=p.d;p.l=p.l||[];p.y=p.y||[]});return arr}
 function render(){
   const L=LIST(),ql=q.trim().toLowerCase();let html='',lastG='';
   for(const p of L){const on=isOn(p.k),ow=isOwn(p.k);
     if(filter==='todo'&&(on||p.c===0))continue;if(filter==='zero'&&p.c>0)continue;if(filter==='done'&&!on)continue;if(filter==='own'&&!ow)continue;
-    if(ql&&!(String(p.b).includes(ql.replace(/^#/,''))||p.e.toLowerCase().includes(ql)||p.j.includes(q.trim())))continue;
+    if(ql&&!(String(p.b).includes(ql.replace(/^#/,''))||p.e.toLowerCase().includes(ql)||p.j.includes(q.trim())||(p.t||'').includes(q.trim())))continue;
     const g=genOf(p.b);if(g!==lastG){html+=`<div class="gen">${g}</div>`;lastG=g}
     html+=`<div class="item${on?' done':''}${ow?' own':''}${p.c===0?' zero':''}" data-k="${p.k}"><div class="top"><div class="checks"><div class="chk" data-a="t">${on?'✓':''}</div><div class="cir" data-a="c">${ow?'●':''}</div></div>
     <img class="sp" loading="lazy" alt="" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.s}.png" onerror="this.style.visibility='hidden'">
-    <div class="nm" data-a="t"><b>#${String(p.b).padStart(4,'0')} ${esc(p.e)}</b><small>${esc(p.j)}</small></div>
+    <div class="nm" data-a="t"><b>#${String(p.b).padStart(4,'0')} ${esc(p.e)}</b><small>${p.t?esc(p.t)+' · ':''}${esc(p.j)}</small></div>
     <span class="cnt">${p.c} ใบ</span>${p.c>0?'<button class="ex" data-a="o" aria-label="ดูรายการ">▾</button>':''}</div>${p.c>0?`<div class="det">${detail(p)}</div>`:''}</div>`;
   }
   $('#list').innerHTML=html||'<div class="empty">ไม่พบรายการ</div>';updProg();
@@ -148,7 +152,15 @@ async function pull(silent){
     const r=await fetch(url+(url.includes('?')?'&':'?')+'action=pull&t='+Date.now());const j=await r.json();
     let msg='ซิงค์แล้ว';
     if(j.ticks&&mergeTicks(j.ticks)){ss(KEY_T,JSON.stringify(ticks))}
-    if(j.list&&j.list.length&&j.version!==sg(KEY_V,'')){const old=PAGES.dex.list.length;PAGES.dex.list=prep(j.list);ss(KEY_L,JSON.stringify(j.list));ss(KEY_V,j.version);msg=`อัปเดตลิส Pokédex แล้ว (${old} → ${j.list.length} ตัว)`}
+    if(j.lists&&j.version&&j.version!==sg(KEY_V,'')){
+      const L=j.lists,old=PAGES.dex.list.length;
+      if(L.dex&&L.dex.length)PAGES.dex.list=prep(L.dex);
+      if(L.mega&&L.mega.length)PAGES.mega.list=prep(L.mega);
+      if(L.reg&&L.reg.length)PAGES.reg.list=prep(L.reg);
+      if(L.gmax&&L.gmax.length)PAGES.gmax.list=prep(L.gmax);
+      if(j.prices&&j.prices.p)PRICES=j.prices;
+      ss(KEY_D,JSON.stringify({lists:L,prices:j.prices||null}));ss(KEY_V,j.version);
+      msg=`อัปเดตลิสจาก Google Sheet แล้ว (Pokédex ${old} → ${PAGES.dex.list.length} ตัว)`}
     render();await push(true);if(!silent)toast(msg);
   }catch(e){if(!silent)toast('ซิงค์ไม่สำเร็จ (ใช้ข้อมูลในเครื่องต่อ)')}
 }
@@ -175,10 +187,16 @@ async function getJ(name,inl){if(window[inl])return window[inl];try{return await
 async function boot(){
   let saved=null;try{saved=JSON.parse(sg(KEY_L,'null'))}catch(e){}
   const base=await getJ('list.json','__LIST__');
-  PAGES.dex.list=prep((saved&&saved.length&&sg(KEY_V,'')!=='')?saved:base);
+  try{const pj=await getJ('prices.json','__PRICES__');if(pj&&pj.p)PRICES=pj}catch(e){}
+  PAGES.dex.list=prep((saved&&saved.length&&sg(KEY_V,'')==='manual')?saved:base);
   PAGES.mega.list=prep(await getJ('mega.json','__MEGA__'));
   PAGES.gmax.list=prep(await getJ('gmax.json','__GMAX__'));
   PAGES.reg.list=prep(await getJ('regional.json','__REG__'));
+  let sd=null;try{sd=JSON.parse(sg(KEY_D,'null'))}catch(e){}
+  if(sd&&sd.lists&&sg(KEY_V,'')!==''&&sg(KEY_V,'')!=='manual'){const L=sd.lists;
+    if(L.dex&&L.dex.length)PAGES.dex.list=prep(L.dex);if(L.mega&&L.mega.length)PAGES.mega.list=prep(L.mega);
+    if(L.reg&&L.reg.length)PAGES.reg.list=prep(L.reg);if(L.gmax&&L.gmax.length)PAGES.gmax.list=prep(L.gmax);
+    if(sd.prices&&sd.prices.p)PRICES=sd.prices}
   setPage(page);pull(true);
   if('storage' in navigator&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 }

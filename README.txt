@@ -19,3 +19,10 @@ Pokémon Full Art Checklist (PWA) — วิธีติดตั้ง
 
 ทำเป็น APK (ถ้าต้องการจริงๆ)
    เอา URL ที่ได้จากข้อ 1 ไปใส่ที่ pwabuilder.com > Package for stores > Android > ดาวน์โหลด APK มาติดตั้ง (เปิดอนุญาตติดตั้งจากแหล่งอื่น)
+
+เวอร์ชันนี้ (ข้อมูลทุกหน้าสร้างจากไฟล์ xlsx เดียวกัน)
+   - ไฟล์ list.json / mega.json / regional.json / gmax.json / prices.json สร้างจาก xlsx ตรงๆ (แท็บ Checklist 001-1025, Mega Dex, Regional Forms, Gigantamax Dex, รายชุด Full Art คอลัมน์ J = ราคา)
+   - ถ้าซิงค์ Google Sheet: Code.gs ตัวใหม่ดึงครบทั้ง 4 หน้า + ชื่อไทย (คอลัมน์ H ของแท็บ Checklist) + ราคา จากแท็บเดียวกัน แก้ในชีตแล้วเปิดแอปก็อัปเดต
+   - ต้องวาง Code.gs ใหม่ใน Apps Script แล้ว Deploy > Manage deployments > แก้ไข > Version: New version
+   - ชีตต้องมีแท็บชื่อตรงตามไฟล์ xlsx (ห้ามเปลี่ยนชื่อแท็บ)
+   - ราคา = Yuyu-tei เว็บเดียว ณ 8-10 พ.ย. 2026
